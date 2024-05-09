@@ -9,13 +9,13 @@ using iText.Kernel.Pdf;
 using iText.Layout;
 using iText.Layout.Element;
 
-namespace IanAutomation
+namespace IanAutomation.FileHelpers
 {
     public class PdfHelper : IDisposable
     {
         public PdfReader PDF;
         public PdfDocument Document;
-        
+
         public PdfHelper(string FilePath)
         {
             PDF = new PdfReader(FilePath);

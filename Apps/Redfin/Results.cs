@@ -11,7 +11,7 @@ using System.Text.RegularExpressions;
 using System.Data;
 using System.Diagnostics;
 
-namespace IanAutomation.Redfin
+namespace IanAutomation.Apps.Redfin
 {
     public class Results
     {
@@ -46,7 +46,7 @@ namespace IanAutomation.Redfin
                     SetComingSoon(mode.ComingSoon);
                     SetActive(mode.Active);
                     SetUnderContractPending(mode.UnderContractPending);
-                    
+
                     break;
                 case SaleType.ForRent:
                     Driver.FindElement(By.Id("forRent")).Click();
@@ -116,12 +116,12 @@ namespace IanAutomation.Redfin
                 Driver.FindElement(By.XPath(@"//span/*[name()='svg' and contains(@class, 'castle')]/parent::*")).Click();
         }
 
-        public List<Listing> GetListings(int MaxPages = Int32.MaxValue, int MaxListings = Int32.MaxValue)
+        public List<Listing> GetListings(int MaxPages = int.MaxValue, int MaxListings = int.MaxValue)
         {
             List<Listing> listings = new List<Listing>();
 
             int pageNumber = 1;
-            while(pageNumber <= MaxPages && listings.Count < MaxListings)
+            while (pageNumber <= MaxPages && listings.Count < MaxListings)
             {
                 listings.AddRange(GetListingsOnPage());
                 if (IsLastPage())
@@ -150,10 +150,10 @@ namespace IanAutomation.Redfin
                 {
                     listings.Add(new Listing()
                     {
-                        Price = Decimal.Parse(prices[i].Text, NumberStyles.Currency),
-                        Bedrooms = Decimal.Parse(number.Match(bedrooms[i].Text).Value),
-                        Bathrooms = Decimal.Parse(number.Match(bathrooms[i].Text).Value),
-                        Sqft = sqfts[i].Text == "—" ? 0 : Decimal.Parse(sqfts[i].Text.Replace(",", "")),
+                        Price = decimal.Parse(prices[i].Text, NumberStyles.Currency),
+                        Bedrooms = decimal.Parse(number.Match(bedrooms[i].Text).Value),
+                        Bathrooms = decimal.Parse(number.Match(bathrooms[i].Text).Value),
+                        Sqft = sqfts[i].Text == "—" ? 0 : decimal.Parse(sqfts[i].Text.Replace(",", "")),
                         Address = addresses[i].Text,
                         Url = urls[i].GetAttribute("href")
                     });
@@ -194,7 +194,7 @@ namespace IanAutomation.Redfin
         public bool UnderContractPending = false;
         public SoldType SoldType;
 
-   }
+    }
 
     public enum SaleType
     {

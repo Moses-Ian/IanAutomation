@@ -3,7 +3,7 @@ using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using System.Collections.ObjectModel;
 
-namespace IanAutomation
+namespace IanAutomation.Apps
 {
     public class TheAutomationChallenge
     {
@@ -113,7 +113,8 @@ namespace IanAutomation
                 {
                     element.SendKeys(Value);
                     return;
-                } catch { }
+                }
+                catch { }
             }
             foreach (var element in Select2(Label))
             {
@@ -121,7 +122,8 @@ namespace IanAutomation
                 {
                     element.SendKeys(Value);
                     return;
-                } catch { }
+                }
+                catch { }
             }
             foreach (var element in Select3(Label))
             {
@@ -129,7 +131,8 @@ namespace IanAutomation
                 {
                     element.SendKeys(Value);
                     return;
-                } catch { }
+                }
+                catch { }
             }
             foreach (var element in Select4(Label))
             {
@@ -137,7 +140,8 @@ namespace IanAutomation
                 {
                     element.SendKeys(Value);
                     return;
-                } catch { }
+                }
+                catch { }
             }
             foreach (var element in Select5(Label))
             {
@@ -145,7 +149,8 @@ namespace IanAutomation
                 {
                     element.SendKeys(Value);
                     return;
-                } catch { }
+                }
+                catch { }
             }
             foreach (var element in Select6(Label))
             {
@@ -153,7 +158,8 @@ namespace IanAutomation
                 {
                     element.SendKeys(Value);
                     return;
-                } catch { }
+                }
+                catch { }
             }
             foreach (var element in Select7(Label))
             {
@@ -161,7 +167,8 @@ namespace IanAutomation
                 {
                     element.SendKeys(Value);
                     return;
-                } catch { }
+                }
+                catch { }
             }
             Console.WriteLine($"Got here at {Label}");
             throw new Exception($"Failed to find {Label}");
@@ -171,7 +178,7 @@ namespace IanAutomation
         {
             return Driver.FindElements(By.XPath(@"//div[@class='bubble-r-box']/div[@class='bubble-element Text']/div[@class='content' and text()='" + Label + @"']/../following-sibling::input"));
         }
-        
+
         private ReadOnlyCollection<IWebElement> Select2(string Label)
         {
             return Driver.FindElements(By.XPath(@"//div[div/div[text()='" + Label + @"']]/following-sibling::div//input"));

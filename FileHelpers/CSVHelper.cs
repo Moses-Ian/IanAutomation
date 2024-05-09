@@ -1,5 +1,4 @@
-﻿using IanAutomation.Redfin;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
@@ -7,7 +6,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace IanAutomation
+namespace IanAutomation.FileHelpers
 {
     public static class CSVHelper
     {
@@ -86,7 +85,7 @@ namespace IanAutomation
             {
                 table.Columns.Add(property.Name, property.PropertyType);
             }
-            
+
             // Add the rows
             foreach (T item in Data)
             {
@@ -101,7 +100,7 @@ namespace IanAutomation
                 {
                     row[property.Name] = property.GetValue(item);
                 }
-                
+
                 // And add it
                 table.Rows.Add(row);
             }

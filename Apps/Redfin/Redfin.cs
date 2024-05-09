@@ -2,33 +2,34 @@
 using OpenQA.Selenium.Chrome;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace IanAutomation
+namespace IanAutomation.Apps.Redfin
 {
-    [Obsolete("Automation is blocked. Use Redfin instead.")]
-    public class Zillow
+    public class Redfin
     {
         public IWebDriver Driver;
 
-        public Zillow() 
+        public Redfin()
         {
             string ProfilePath = @"C:\Users\IMoses\AppData\Local\Google\Chrome\User";
             ChromeOptions options = new ChromeOptions();
             options.AddArgument($"--user-data-dir={ProfilePath}");
             options.AddArgument("--incognito");
             Driver = new ChromeDriver(@"C:\WebDriver\chromedriver.exe", options);
-            Driver.Navigate().GoToUrl("https://www.zillow.com/");
+            Driver.Navigate().GoToUrl("https://www.redfin.com/");
         }
 
-        public void Search(string query)
+        public Results Search(string query)
         {
-            var searchInput = Driver.FindElement(By.CssSelector("input[type='text']"));
+            var searchInput = Driver.FindElement(By.CssSelector(".searchInputNode input#search-box-input"));
             searchInput.SendKeys(query);
             searchInput.Submit();
+            return new Results(this, Driver);
         }
 
         public void Shutdown()
