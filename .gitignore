@@ -2,3 +2,4 @@
 bin
 obj
 third-party-dependencies
+appsettings.json
