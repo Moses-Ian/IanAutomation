@@ -38,6 +38,7 @@
   <Reference>&lt;ProgramFilesX86&gt;\IronSoftware\IronOcr\lib\netstandard2.0\System.Runtime.CompilerServices.Unsafe.dll</Reference>
   <Reference>&lt;ProgramFilesX86&gt;\IronSoftware\IronOcr\runtimes\win-x64\native\Tesseract.Windows.deployment.json</Reference>
   <Namespace>IanAutomation</Namespace>
+  <Namespace>IanAutomation.FileHelpers</Namespace>
   <Namespace>IanAutomation.ImageFiles</Namespace>
   <Namespace>System.Windows.Forms</Namespace>
 </Query>
@@ -45,6 +46,7 @@
 void Main()
 {
 	string InvoiceFolderPath = @"F:\projects_uipath\Robot5_PDFDataScraper\input";
+	LeonPetrouInvoice invoice = null;
 	
 	//PdfHelper Pdf;
 	
@@ -63,27 +65,15 @@ void Main()
 		
 			
 		// Iterate over each file in the folder
-        //foreach (FileInfo file in files)
-        //{
-			var file = files[0];
-			var invoice = new LeonPetrouInvoice(file.FullName);
-			var result = invoice.OcrResult;
-			
-			Console.WriteLine(invoice.InvoiceNumber);
-			
-			/*
-			foreach(var block in result.Blocks)
-			{
-				foreach(var word in block.Words)
-				{
-					if (word.Text.Contains("19070"))
-						Console.WriteLine(block);
-				}
-			}
-			*/
-        //}
+		var invoices = new List<LeonPetrouInvoice.Invoice>();
+        foreach (FileInfo file in files)
+        {
+			invoices.Add(new LeonPetrouInvoice(file.FullName).Parse());	
+        }
 		
-		
+		var data = CSVHelper.ListToDataTable(invoices);
+		CSVHelper.WriteCSV(data, @"C:/invoices.csv");
+		Thread.Sleep(5000);
 	}
 	catch (Exception e)
 	{
@@ -93,8 +83,8 @@ void Main()
 	}
 	finally
 	{
-		//if (Pdf != null)
-		//	Pdf.Shutdown();
+		if (invoice != null)
+			invoice.Shutdown();
 		Thread.Sleep(2000);
 	}
 }
