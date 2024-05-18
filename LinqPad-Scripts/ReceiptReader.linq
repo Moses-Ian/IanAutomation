@@ -45,42 +45,51 @@
 
 void Main()
 {
-	string InvoiceFolderPath = @"F:\projects_uipath\Robot5_PDFDataScraper\input";
-	LeonPetrouInvoice invoice = null;
+	string ReceiptFolderPath = @"F:\projects_uipath\Robot6_OpticalCharacterRecognition\ScannedReceipts";
+	RobogasReceipt receipt = null;
 	
 	//PdfHelper Pdf;
 	
 	try
 	{
 		// Check if the folder exists
-        if (!Directory.Exists(InvoiceFolderPath))
+        if (!Directory.Exists(ReceiptFolderPath))
         {
             Console.WriteLine("Folder does not exist.");
 			return;
 		}
 		
 		// Get the files and sort them by CreationDate
-		List<FileInfo> files = Directory.GetFiles(InvoiceFolderPath).Select(path => new FileInfo(path)).ToList();
+		List<FileInfo> files = Directory.GetFiles(ReceiptFolderPath).Select(path => new FileInfo(path)).ToList();
 		files.Sort(CompareCreationTimes);
 		
+		//receipt = new RobogasReceipt(files[4].FullName);
+		//receipt.SaveToBitmap();
+		//return;
+		
+		//receipt = new RobogasReceipt(files[0].FullName);
+		//var rec = receipt.Parse();
+		//Console.WriteLine(rec.ID);
+		//Console.WriteLine(rec.Date);
+		//Console.WriteLine(rec.SaleAmount);
+		//Console.WriteLine(rec.SumAmount);
+		//Console.WriteLine(rec.Status);
+		//return;
 			
 		// Iterate over each file in the folder
-		var invoices = new List<LeonPetrouInvoice.Invoice>();
+		var receipts = new List<RobogasReceipt.Receipt>();
+		int num = 1;
         foreach (FileInfo file in files)
         {
-			invoice = new LeonPetrouInvoice(file.FullName);
-			var inv = invoice.Parse();
-			//Console.WriteLine(invoice.InvoiceNumber);
-			//Console.WriteLine(invoice.Date);
-			//Console.WriteLine(invoice.CompanyName);
-			//Console.WriteLine(invoice.Total);
-			//Console.WriteLine(invoice.Status);
+			Console.WriteLine("Parsing {0} of {1}", num++, files.Count);
+			receipt = new RobogasReceipt(file.FullName);
+			var inv = receipt.Parse();
 			
-			invoices.Add(inv);	
+			receipts.Add(inv);	
         }
 		
-		var data = CSVHelper.ListToDataTable(invoices);
-		CSVHelper.WriteCSV(data, @"C:/invoices.csv");
+		var data = CSVHelper.ListToDataTable(receipts);
+		CSVHelper.WriteCSV(data, @"C:/receipts.csv");
 		Thread.Sleep(5000);
 	}
 	catch (Exception e)

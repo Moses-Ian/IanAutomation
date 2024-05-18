@@ -1,21 +1,21 @@
-﻿using System;
+﻿using IronOcr;
+using Microsoft.Extensions.Configuration;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using IronOcr;
-using Microsoft.Extensions.Configuration;
 using IronSoftware.Drawing;
 
 namespace IanAutomation.ImageFiles
 {
-    public class LeonPetrouInvoice
+    public class RobogasReceipt
     {
         public IronTesseract ocr;
         public OcrResult FullDocumentResult;
         public string Filepath;
-        
-        public LeonPetrouInvoice(string Filepath)
+
+        public RobogasReceipt(string Filepath)
         {
             this.Filepath = Filepath;
 
@@ -27,12 +27,12 @@ namespace IanAutomation.ImageFiles
             string secret = config["IronOCRLicense"];
             if (secret == null)
                 throw new Exception("The OCR License is missing");
-            IronOcr.License.LicenseKey = secret;
-            if (!IronOcr.License.IsLicensed)
+            License.LicenseKey = secret;
+            if (!License.IsLicensed)
                 throw new Exception("The OCR License is invalid");
-            
+
             ocr = new IronTesseract();
-            
+
             using (var fullOcrInput = new OcrInput())
             {
                 fullOcrInput.LoadPdf(Filepath);
@@ -50,16 +50,16 @@ namespace IanAutomation.ImageFiles
             }
         }
 
-        public string InvoiceNumber
+        public string ID
         {
             get
             {
                 using (var OcrInput = new OcrInput())
                 {
-                    Rectangle area = new Rectangle(1225, 429, 100, 50);
+                    Rectangle area = new Rectangle(341, 383, 144, 40);
                     OcrInput.LoadPdf(Filepath, ContentArea: area);
                     var ocrResult = ocr.Read(OcrInput);
-                    return ocrResult.Text.Replace(".", "");
+                    return ocrResult.Text;
                 }
             }
         }
@@ -70,7 +70,7 @@ namespace IanAutomation.ImageFiles
             {
                 using (var OcrInput = new OcrInput())
                 {
-                    Rectangle area = new Rectangle(1229, 353, 152, 55);
+                    Rectangle area = new Rectangle(341, 423, 177, 39);
                     OcrInput.LoadPdf(Filepath, ContentArea: area);
                     var ocrResult = ocr.Read(OcrInput);
                     return DateTime.Parse(ocrResult.Text);
@@ -78,27 +78,13 @@ namespace IanAutomation.ImageFiles
             }
         }
 
-        public string CompanyName
+        public decimal SaleAmount
         {
             get
             {
                 using (var OcrInput = new OcrInput())
                 {
-                    Rectangle area = new Rectangle(147, 639, 192, 57);
-                    OcrInput.LoadPdf(Filepath, ContentArea: area);
-                    var ocrResult = ocr.Read(OcrInput);
-                    return ocrResult.Text;
-                }
-            }
-        }
-
-        public decimal Total
-        {
-            get
-            {
-                using (var OcrInput = new OcrInput())
-                {
-                    Rectangle area = new Rectangle(1231, 1231, 148, 78);
+                    Rectangle area = new Rectangle(371, 849, 115, 42);
                     OcrInput.LoadPdf(Filepath, ContentArea: area);
                     var ocrResult = ocr.Read(OcrInput);
                     return Decimal.Parse(ocrResult.Text);
@@ -106,23 +92,21 @@ namespace IanAutomation.ImageFiles
             }
         }
 
-        public Invoice Parse()
+        public Receipt Parse()
         {
-            var invoice = new Invoice();
-            invoice.Status = "Success";
-            try { invoice.InvoiceNumber = InvoiceNumber; } catch { invoice.Status = "Fail"; }
-            try { invoice.Date = Date; }                   catch { invoice.Status = "Fail"; }
-            try { invoice.CompanyName = CompanyName; }     catch { invoice.Status = "Fail"; }
-            try { invoice.Total = Total; }                 catch { invoice.Status = "Fail"; }
-            return invoice;
+            var receipt = new Receipt();
+            receipt.Status = "Success";
+            try { receipt.ID = ID; }                 catch { receipt.Status = "Fail"; }
+            try { receipt.Date = Date; }             catch { receipt.Status = "Fail"; }
+            try { receipt.SaleAmount = SaleAmount; } catch { receipt.Status = "Fail"; }
+            return receipt;
         }
 
-        public struct Invoice
+        public struct Receipt
         {
-            public string InvoiceNumber;
+            public string ID;
             public DateTime Date;
-            public string CompanyName;
-            public decimal Total;
+            public decimal SaleAmount;
             public string Status;
         }
     }
