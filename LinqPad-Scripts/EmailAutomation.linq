@@ -5,7 +5,7 @@
   <Reference>&lt;ProgramFilesX86&gt;\IronSoftware\IronOcr\runtimes\win-x64\native\eng.fast.traineddata</Reference>
   <Reference>&lt;ProgramFilesX86&gt;\IronSoftware\IronOcr\runtimes\win-x64\native\eng.user-patterns</Reference>
   <Reference>&lt;ProgramFilesX86&gt;\IronSoftware\IronOcr\runtimes\win-x64\native\eng.user-words</Reference>
-  <Reference Relative="..\bin\Debug\net7.0\IanAutomation.dll">F:\projects_csharp\IanAutomation\bin\Debug\net7.0\IanAutomation.dll</Reference>
+  <Reference>F:\projects_csharp\IanAutomation\bin\Debug\net7.0\IanAutomation.dll</Reference>
   <Reference>&lt;ProgramFilesX86&gt;\IronSoftware\IronOcr\lib\netstandard2.0\IronOcr.dll</Reference>
   <Reference>&lt;ProgramFilesX86&gt;\IronSoftware\IronOcr\runtimes\win-x64\native\IronOcrInterop.dll</Reference>
   <Reference>&lt;ProgramFilesX86&gt;\IronSoftware\IronOcr\runtimes\win-x64\native\IronPdfInterop.dll</Reference>
@@ -16,6 +16,7 @@
   <Reference>&lt;ProgramFilesX86&gt;\IronSoftware\IronOcr\runtimes\win-x64\native\liblept-5.dll</Reference>
   <Reference>&lt;ProgramFilesX86&gt;\IronSoftware\IronOcr\runtimes\win-x64\native\libtesseract-5.dll</Reference>
   <Reference>&lt;ProgramFilesX86&gt;\IronSoftware\IronOcr\runtimes\win-x64\native\LICENSE</Reference>
+  <Reference>&lt;ProgramFilesX64&gt;\LINQPad8\linqpad.config</Reference>
   <Reference>&lt;ProgramFilesX86&gt;\IronSoftware\IronOcr\lib\netstandard2.0\Microsoft.Extensions.Configuration.Abstractions.dll</Reference>
   <Reference>&lt;ProgramFilesX86&gt;\IronSoftware\IronOcr\lib\netstandard2.0\Microsoft.Extensions.Configuration.Binder.dll</Reference>
   <Reference>&lt;ProgramFilesX86&gt;\IronSoftware\IronOcr\lib\netstandard2.0\Microsoft.Extensions.Configuration.dll</Reference>
@@ -38,59 +39,28 @@
   <Reference>&lt;ProgramFilesX86&gt;\IronSoftware\IronOcr\lib\netstandard2.0\System.Runtime.CompilerServices.Unsafe.dll</Reference>
   <Reference>&lt;ProgramFilesX86&gt;\IronSoftware\IronOcr\runtimes\win-x64\native\Tesseract.Windows.deployment.json</Reference>
   <Namespace>IanAutomation</Namespace>
+  <Namespace>IanAutomation.Apps</Namespace>
   <Namespace>IanAutomation.FileHelpers</Namespace>
   <Namespace>IanAutomation.ImageFiles</Namespace>
+  <Namespace>System.Configuration</Namespace>
   <Namespace>System.Windows.Forms</Namespace>
 </Query>
 
 void Main()
 {
-	string ReceiptFolderPath = @"F:\projects_uipath\Robot6_OpticalCharacterRecognition\ScannedReceipts";
-	RobogasReceipt receipt = null;
-	
-	//PdfHelper Pdf;
+	Hotmail Page = null;
 	
 	try
 	{
-		// Check if the folder exists
-        if (!Directory.Exists(ReceiptFolderPath))
-        {
-            Console.WriteLine("Folder does not exist.");
-			return;
-		}
+		InitialiseConfiguration("./linqpad.config");
+		string email = ConfigurationManager.AppSettings["Email"];
+		string password = ConfigurationManager.AppSettings["Password"];
+		Console.WriteLine(email);
 		
-		// Get the files and sort them by CreationDate
-		List<FileInfo> files = Directory.GetFiles(ReceiptFolderPath).Select(path => new FileInfo(path)).ToList();
-		files.Sort(CompareCreationTimes);
-		
-		//receipt = new RobogasReceipt(files[4].FullName);
-		//receipt.SaveToBitmap();
-		//return;
-		
-		//receipt = new RobogasReceipt(files[0].FullName);
-		//var rec = receipt.Parse();
-		//Console.WriteLine(rec.ID);
-		//Console.WriteLine(rec.Date);
-		//Console.WriteLine(rec.SaleAmount);
-		//Console.WriteLine(rec.SumAmount);
-		//Console.WriteLine(rec.Status);
-		//return;
-			
-		// Iterate over each file in the folder
-		var receipts = new List<RobogasReceipt.Receipt>();
-		int num = 1;
-        foreach (FileInfo file in files)
-        {
-			Console.WriteLine("Parsing {0} of {1}", num++, files.Count);
-			receipt = new RobogasReceipt(file.FullName);
-			var inv = receipt.Parse();
-			
-			receipts.Add(inv);	
-        }
-		
-		var data = CSVHelper.ListToDataTable(receipts);
-		CSVHelper.WriteCSV(data, @"C:/receipts.csv");
-		Thread.Sleep(5000);
+		Page = new Hotmail();
+		Page.SignIn(email, password);
+		var emails = Page.GetEmails(10);
+		emails.ForEach(email => Console.WriteLine(email.Subject));
 	}
 	catch (Exception e)
 	{
@@ -100,12 +70,29 @@ void Main()
 	}
 	finally
 	{
-		Thread.Sleep(2000);
+		Thread.Sleep(5000);
+		if (Page != null)
+			Page.Shutdown();
 	}
 }
 
 // You can define other methods, fields, classes and namespaces here
-public static int CompareCreationTimes(FileInfo A, FileInfo B)
+public static void InitialiseConfiguration(params string[] configPath)
 {
-	return A.CreationTime.CompareTo(B.CreationTime);
+	string configPathLocal = Path.Combine(configPath);
+	AppDomain.CurrentDomain.SetData("APP_CONFIG_FILE", configPathLocal);
+	typeof(ConfigurationManager)
+		.GetField("s_initState", BindingFlags.NonPublic | BindingFlags.Static)
+		.SetValue(null, 0);
+
+	typeof(ConfigurationManager)
+	    .GetField("s_configSystem", BindingFlags.NonPublic | BindingFlags.Static)
+	    .SetValue(null, null);
+
+	typeof(ConfigurationManager)
+	    .Assembly.GetTypes()
+	    .Where(x => x.FullName == "System.Configuration.ClientConfigPaths")
+	    .First()
+	    .GetField("s_current", BindingFlags.NonPublic | BindingFlags.Static)
+	    .SetValue(null, null);
 }
