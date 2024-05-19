@@ -49,18 +49,42 @@
 void Main()
 {
 	Hotmail Page = null;
+	Regex r = new Regex(@"Dummy (\d*)");
+	string SavedEmailsPath = @"F:\projects_uipath\Robot7_EmailAutomation";
 	
 	try
 	{
 		InitialiseConfiguration("./linqpad.config");
-		string email = ConfigurationManager.AppSettings["Email"];
+		string address = ConfigurationManager.AppSettings["Email"];
 		string password = ConfigurationManager.AppSettings["Password"];
-		Console.WriteLine(email);
+		string forwardAddress = ConfigurationManager.AppSettings["Forward"];
+		Console.WriteLine(address);
 		
-		Page = new Hotmail();
-		Page.SignIn(email, password);
+		Page = new Hotmail(SavedEmailsPath);
+		Page.SignIn(address, password);
+		
+		// navigate manually if it's being a little bitch
+		Thread.Sleep(5000);
+		
 		var emails = Page.GetEmails(10);
-		emails.ForEach(email => Console.WriteLine(email.Subject));
+		foreach (var email in emails)
+		{
+			Console.WriteLine(email.Subject);
+			
+			string number = r.Match(email.Subject).Groups[1].Value;
+			
+			if (email.Subject.Contains("Read"))
+			{
+				Console.WriteLine("Marking email {0} as Read", number);
+				Page.MarkRead(email);
+			}
+			
+			if (email.Subject.Contains("Forward"))
+			{
+				Console.WriteLine("Forwarding email {0}", number);
+				Page.Forward(email, ");
+			}
+		}
 	}
 	catch (Exception e)
 	{
