@@ -1,11 +1,14 @@
 <Query Kind="Program">
   <Reference>&lt;ProgramFilesX86&gt;\IronSoftware\IronOcr\lib\netstandard2.0\BitMiracle.LibTiff.NET.dll</Reference>
+  <Reference>&lt;NuGet&gt;\emgu.cv.runtime.windows\4.9.0.5494\runtimes\win-x64\native\cvextern.dll</Reference>
+  <Reference>&lt;NuGet&gt;\emgu.cv\4.9.0.5494\lib\net8.0-ios16.1\Emgu.CV.dll</Reference>
+  <Reference>&lt;NuGet&gt;\emgu.cv\4.9.0.5494\lib\net8.0-ios16.1\Emgu.CV.xml</Reference>
   <Reference>&lt;ProgramFilesX86&gt;\IronSoftware\IronOcr\runtimes\win-x64\native\eng.base.traineddata</Reference>
   <Reference>&lt;ProgramFilesX86&gt;\IronSoftware\IronOcr\runtimes\win-x64\native\eng.best.traineddata</Reference>
   <Reference>&lt;ProgramFilesX86&gt;\IronSoftware\IronOcr\runtimes\win-x64\native\eng.fast.traineddata</Reference>
   <Reference>&lt;ProgramFilesX86&gt;\IronSoftware\IronOcr\runtimes\win-x64\native\eng.user-patterns</Reference>
   <Reference>&lt;ProgramFilesX86&gt;\IronSoftware\IronOcr\runtimes\win-x64\native\eng.user-words</Reference>
-  <Reference>F:\projects_csharp\IanAutomation\bin\Debug\net7.0\IanAutomation.dll</Reference>
+  <Reference Relative="..\..\bin\Debug\net7.0\IanAutomation.dll">F:\projects_csharp\IanAutomation\bin\Debug\net7.0\IanAutomation.dll</Reference>
   <Reference>&lt;ProgramFilesX86&gt;\IronSoftware\IronOcr\lib\netstandard2.0\IronOcr.dll</Reference>
   <Reference>&lt;ProgramFilesX86&gt;\IronSoftware\IronOcr\runtimes\win-x64\native\IronOcrInterop.dll</Reference>
   <Reference>&lt;ProgramFilesX86&gt;\IronSoftware\IronOcr\runtimes\win-x64\native\IronPdfInterop.dll</Reference>
@@ -15,6 +18,7 @@
   <Reference>&lt;ProgramFilesX86&gt;\IronSoftware\IronOcr\lib\netstandard2.0\IronSoftware.Shared.dll</Reference>
   <Reference>&lt;ProgramFilesX86&gt;\IronSoftware\IronOcr\runtimes\win-x64\native\liblept-5.dll</Reference>
   <Reference>&lt;ProgramFilesX86&gt;\IronSoftware\IronOcr\runtimes\win-x64\native\libtesseract-5.dll</Reference>
+  <Reference>&lt;NuGet&gt;\emgu.cv.runtime.windows\4.9.0.5494\runtimes\win-x64\native\libusb-1.0.dll</Reference>
   <Reference>&lt;ProgramFilesX86&gt;\IronSoftware\IronOcr\runtimes\win-x64\native\LICENSE</Reference>
   <Reference>&lt;ProgramFilesX64&gt;\LINQPad8\linqpad.config</Reference>
   <Reference>&lt;ProgramFilesX86&gt;\IronSoftware\IronOcr\lib\netstandard2.0\Microsoft.Extensions.Configuration.Abstractions.dll</Reference>
@@ -27,6 +31,7 @@
   <Reference>&lt;ProgramFilesX86&gt;\IronSoftware\IronOcr\lib\netstandard2.0\Microsoft.Extensions.FileSystemGlobbing.dll</Reference>
   <Reference>&lt;ProgramFilesX86&gt;\IronSoftware\IronOcr\lib\netstandard2.0\Microsoft.Extensions.Logging.Abstractions.dll</Reference>
   <Reference>&lt;ProgramFilesX86&gt;\IronSoftware\IronOcr\lib\netstandard2.0\Microsoft.Extensions.Primitives.dll</Reference>
+  <Reference>&lt;NuGet&gt;\emgu.cv.runtime.windows\4.9.0.5494\runtimes\win-x64\native\opencv_videoio_ffmpeg490_64.dll</Reference>
   <Reference>&lt;ProgramFilesX86&gt;\IronSoftware\IronOcr\runtimes\win-x64\native\osd.traineddata</Reference>
   <Reference>&lt;ProgramFilesX86&gt;\IronSoftware\IronOcr\runtimes\win-x64\native\pdf.ttf</Reference>
   <Reference>&lt;ProgramFilesX86&gt;\IronSoftware\IronOcr\runtimes\win-x64\native\pdf.ttx</Reference>
@@ -38,95 +43,139 @@
   <Reference>&lt;ProgramFilesX86&gt;\IronSoftware\IronOcr\lib\netstandard2.0\System.Numerics.Vectors.dll</Reference>
   <Reference>&lt;ProgramFilesX86&gt;\IronSoftware\IronOcr\lib\netstandard2.0\System.Runtime.CompilerServices.Unsafe.dll</Reference>
   <Reference>&lt;ProgramFilesX86&gt;\IronSoftware\IronOcr\runtimes\win-x64\native\Tesseract.Windows.deployment.json</Reference>
+  <Namespace>Emgu.CV</Namespace>
+  <Namespace>Emgu.CV.CvEnum</Namespace>
+  <Namespace>Emgu.CV.Features2D</Namespace>
+  <Namespace>Emgu.CV.Structure</Namespace>
+  <Namespace>Emgu.CV.Util</Namespace>
   <Namespace>IanAutomation</Namespace>
   <Namespace>IanAutomation.Apps.Hotmail</Namespace>
   <Namespace>IanAutomation.FileHelpers</Namespace>
   <Namespace>IanAutomation.ImageFiles</Namespace>
   <Namespace>OpenQA.Selenium</Namespace>
   <Namespace>System.Configuration</Namespace>
+  <Namespace>System.Drawing</Namespace>
   <Namespace>System.Windows.Forms</Namespace>
 </Query>
 
+// Press 1, 2, 3, 4 to see various filters
+
 void Main()
 {
-	Hotmail Page = null;
-	Regex r = new Regex(@"Dummy (\d*)");
-	string SavedEmailsPath = @"F:\projects_uipath\Robot7_EmailAutomation";
+	//EmguCV_HelloWorld.Run();
+	
+	Filter filter = Filter.Normal;
+	
+	VideoCapture capture = null;
+	
+	// Initialize the GFTTDetector
+    GFTTDetector detector = new GFTTDetector(
+        maxCorners: 500,       // Maximum number of corners to detect
+        qualityLevel: 0.2,    // Quality level parameter (0 - 1)
+        minDistance: 15,       // Minimum distance between detected corners
+        blockSize: 9,          // Block size for the corner detection
+        useHarrisDetector: false,
+        k: 0.04);
+	
+	Rgb Green = new Rgb(0, 255, 0);
 	
 	try
 	{
-		InitialiseConfiguration("./linqpad.config");
-		string address = ConfigurationManager.AppSettings["Email"];
-		string password = ConfigurationManager.AppSettings["Password"];
-		string forwardAddress = ConfigurationManager.AppSettings["Forward"];
-		Console.WriteLine(address);
+		// Create a VideoCapture object to capture video from the default camera (index 0)
+        capture = new VideoCapture(0);
+        
+        // Check if the camera opened successfully
+        if (!capture.IsOpened)
+        {
+            Console.WriteLine("Error: Unable to open the camera");
+            return;
+        }
+
+        // Create a window to display the captured frames
+        string windowName = "Camera Capture";
+        CvInvoke.NamedWindow(windowName);	
 		
-		Page = new Hotmail(SavedEmailsPath);
-		Page.SignIn(address, password);
-		
-		var emails = Page.GetEmails(10);
-		foreach (var email in emails)
+		while (CvInvoke.WaitKey(1) != 'q')
 		{
-			Console.WriteLine(email.Subject);
+			// Capture a frame from the camera
+            Mat frame = new Mat();
+            capture.Read(frame);
 			
-			string number = r.Match(email.Subject).Groups[1].Value;
+			// flip it so that it looks like a mirror
+			CvInvoke.Flip(frame, frame, FlipType.Horizontal);
+
+            // Check if the frame was captured successfully
+            if (frame.IsEmpty)
+            {
+                Console.WriteLine("Error: Unable to capture frame");
+                break;
+            }
 			
-			//if (email.Subject.Contains("Read"))
-			//{
-			//	Console.WriteLine("Marking email {0} as Read", number);
-			//	Page.MarkRead(email);
-			//}
-			
-			//if (email.Subject.Contains("Forward"))
-			//{
-			//	Console.WriteLine("Forwarding email {0}", number);
-			//	Page.Forward(email, forwardAddress);
-			//}
-			
-			if (email.Subject.Contains("Delete"))
+			// apply a filter
+			Mat result = new Mat();
+			switch (filter)
 			{
-				Console.WriteLine("Deleting email {0}", number);
-				Page.Delete(email);
+				case Filter.Normal:
+					result = frame;
+					break;
+				case Filter.Blur:
+					CvInvoke.Blur(frame, result, new Size(145, 150), new Point(0, 0));
+					break;
+				case Filter.Corners:
+					result = frame;
+					Mat grayFrame = new Mat();
+					// convert to grayscale
+					CvInvoke.CvtColor(frame, grayFrame, ColorConversion.Bgr2Gray);
+					// detect the corners
+					VectorOfKeyPoint corners = new VectorOfKeyPoint();
+        			detector.DetectRaw(grayFrame, corners);
+					foreach (var corner in corners.ToArray())
+						CvInvoke.Circle(result, Point.Round(corner.Point), 10, Convert(Green), 1);
+					break;
+				case Filter.Edges:
+					CvInvoke.Canny(frame, result, 145, 150);
+					break;
 			}
+
+            // Display the captured frame
+            CvInvoke.Imshow(windowName, result);
 			
+			// set the filter
+			var Key = CvInvoke.WaitKey(1);
+			if (Key == '1') filter = Filter.Normal;
+			if (Key == '2') filter = Filter.Blur;
+			if (Key == '3') filter = Filter.Corners;
+			if (Key == '4') filter = Filter.Edges;
 		}
-	}
-	catch (NoSuchElementException e)
-	{
-		Console.WriteLine(e.Message);
-		Thread.Sleep(20000);
-	}
-	catch (Exception e)
-	{
-		Console.WriteLine(e.Message);
-		if (e.InnerException != null)
-			Console.WriteLine(e.InnerException.Message);
 	}
 	finally
 	{
-		Thread.Sleep(5000);
-		if (Page != null)
-			Page.Shutdown();
-	}
+		if (capture != null)
+			capture.Release();
+		CvInvoke.DestroyAllWindows();
+    }
+	
+	Console.WriteLine("done");
 }
 
-// You can define other methods, fields, classes and namespaces here
-public static void InitialiseConfiguration(params string[] configPath)
+public enum Filter
 {
-	string configPathLocal = Path.Combine(configPath);
-	AppDomain.CurrentDomain.SetData("APP_CONFIG_FILE", configPathLocal);
-	typeof(ConfigurationManager)
-		.GetField("s_initState", BindingFlags.NonPublic | BindingFlags.Static)
-		.SetValue(null, 0);
+	Normal,
+	Blur,
+	Corners,
+	Edges
+}
 
-	typeof(ConfigurationManager)
-	    .GetField("s_configSystem", BindingFlags.NonPublic | BindingFlags.Static)
-	    .SetValue(null, null);
+public MCvScalar Convert(Rgb Color)
+{
+	return new MCvScalar(Color.Blue, Color.Green, Color.Red);
+}
 
-	typeof(ConfigurationManager)
-	    .Assembly.GetTypes()
-	    .Where(x => x.FullName == "System.Configuration.ClientConfigPaths")
-	    .First()
-	    .GetField("s_current", BindingFlags.NonPublic | BindingFlags.Static)
-	    .SetValue(null, null);
+public Filter? Key2Filter(int Key)
+{
+	if (Key == '1') return Filter.Normal;
+	if (Key == '2') return Filter.Blur;
+	if (Key == '3') return Filter.Corners;
+	if (Key == '4') return Filter.Edges;
+	return null;
 }
