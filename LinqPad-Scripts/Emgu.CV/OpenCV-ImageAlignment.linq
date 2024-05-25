@@ -64,47 +64,93 @@ void Main()
 	
 	string formPath = @"F:\projects_csharp\OpenCV-practice\form.jpg";
 	string scannedPath = @"F:\projects_csharp\OpenCV-practice\scanned-form.jpg";
-	string title1 = "Form";
-	string title2 = "Scanned Form";
+	string title1 = "Scanned Form";
+	string title2 = "Form";
+	string title3 = "Matches";
 	
 	// Initialize the ORB detector
-    ORB orbDetector = new ORB(
-        numberOfFeatures: 500,      // Number of features to retain
-        scaleFactor: 1.2f,   // Pyramid decimation ratio
-        nLevels: 8,          // Number of levels in the pyramid
-        edgeThreshold: 31,   // Size of the border where the features are not detected
-        firstLevel: 0,       // Level of the pyramid to put the source image to
-        WTK_A: 2,            // Number of points that produce each element of the oriented BRIEF descriptor
-        scoreType: ORB.ScoreType.Harris,
-        patchSize: 31,       // Size of the patch used by the oriented BRIEF descriptor
-        fastThreshold: 20);  // FAST threshold
+	ORB orbDetector = new ORB();
+		
+	Rgb Green = new Rgb(0, 255, 0);
+	Rgb Blue = new Rgb(0, 0, 255);
 
 	try
 	{
 		
-		Image<Bgr, Byte> img1 = new Image<Bgr, Byte>(formPath);
+		Image<Bgr, Byte> img1 = new Image<Bgr, Byte>(scannedPath);
 		Console.WriteLine($"Image size is ({img1.Width}, {img1.Height}, {img1.NumberOfChannels})");
 		
-	    Image<Bgr, Byte> img2 = new Image<Bgr, Byte>(scannedPath);
+	    Image<Bgr, Byte> img2 = new Image<Bgr, Byte>(formPath);
 		Console.WriteLine($"Image size is ({img2.Width}, {img2.Height}, {img2.NumberOfChannels})");
 		
 	    CvInvoke.NamedWindow(title1); //Create the window using the specific name
 	    CvInvoke.NamedWindow(title2); //Create the window using the specific name
+	    CvInvoke.NamedWindow(title3); //Create the window using the specific name
 		
-		AddFeatures(img1, orbDetector);
-		AddFeatures(img2, orbDetector);
+		// Get the corners and descriptors for both images
+		VectorOfKeyPoint corners1;
+		VectorOfKeyPoint corners2;
+		Mat descriptors1;
+		Mat descriptors2;
+		
+		GetFeatures(img1, orbDetector, out corners1, out descriptors1);
+		GetFeatures(img2, orbDetector, out corners2, out descriptors2);
+		
+		// Match keypoints
+		BFMatcher matcher = new BFMatcher(DistanceType.Hamming);
+		var matches = new VectorOfDMatch();
+		matcher.Match(descriptors1, descriptors2, matches);
+		
+		// Reduce to the 10% best
+		var matchesList = matches.ToArray().ToList();
+		matchesList.Sort((match1, match2) => match1.Distance.CompareTo(match2.Distance));
+		int numGoodMatches = (int)(matchesList.Count() * 0.1);
+		var bestMatchesArray = matchesList.Take(numGoodMatches).ToArray();
+		var bestMatchesVector = new VectorOfDMatch(bestMatchesArray);
+		
+		// Draw the matches
+        Mat matchesImage = new Mat();
+        Features2DToolbox.DrawMatches(img1, corners1, img2, corners2, bestMatchesVector, matchesImage,
+            Convert(Green), Convert(Blue));
+			
+		// Extract the matched keypoints
+        List<PointF> points1 = new List<PointF>();
+        List<PointF> points2 = new List<PointF>();
+        foreach (var match in bestMatchesArray)
+        {
+            points1.Add(corners1[match.QueryIdx].Point);
+            points2.Add(corners2[match.TrainIdx].Point);
+        }
+		
+		// Find the homography matrix
+        Mat homography = CvInvoke.FindHomography(points1.ToArray(), points2.ToArray(), RobustEstimationAlgorithm.Ransac, 3);
+
 		
 		CvInvoke.Imshow(title1, img1); //Show the image
 		CvInvoke.Imshow(title2, img2); //Show the image
+		CvInvoke.Imshow(title3, matchesImage); //Show the image
 		CvInvoke.WaitKey(0);  //Wait for the key pressing event
 	}
 	finally
 	{
 		CvInvoke.DestroyWindow(title1); //Destroy the window if key is pressed
 		CvInvoke.DestroyWindow(title2); //Destroy the window if key is pressed
+		CvInvoke.DestroyWindow(title3); //Destroy the window if key is pressed
 	}
 	
 	Console.WriteLine("done");
+}
+
+void GetFeatures(Image<Bgr, Byte> img, ORB detector, out VectorOfKeyPoint corners, out Mat descriptors)
+{
+	Mat grayFrame = new Mat();
+	// convert to grayscale
+	CvInvoke.CvtColor(img, grayFrame, ColorConversion.Bgr2Gray);
+	
+	// detect the corners
+	corners = new VectorOfKeyPoint();
+	descriptors = new Mat();
+	detector.DetectAndCompute(grayFrame, null, corners, descriptors, false);
 }
 
 void AddFeatures(Image<Bgr, Byte> img, ORB detector)
