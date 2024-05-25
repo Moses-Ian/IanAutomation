@@ -67,6 +67,7 @@ void Main()
 	string title1 = "Scanned Form";
 	string title2 = "Form";
 	string title3 = "Matches";
+	string title4 = "Warped";
 	
 	// Initialize the ORB detector
 	ORB orbDetector = new ORB();
@@ -77,65 +78,44 @@ void Main()
 	try
 	{
 		
-		Image<Bgr, Byte> img1 = new Image<Bgr, Byte>(scannedPath);
-		Console.WriteLine($"Image size is ({img1.Width}, {img1.Height}, {img1.NumberOfChannels})");
+		Image<Bgr, Byte> Model = new Image<Bgr, Byte>(formPath);
+		Console.WriteLine($"Image size is ({Model.Width}, {Model.Height}, {Model.NumberOfChannels})");
 		
-	    Image<Bgr, Byte> img2 = new Image<Bgr, Byte>(formPath);
-		Console.WriteLine($"Image size is ({img2.Width}, {img2.Height}, {img2.NumberOfChannels})");
+	    Image<Bgr, Byte> Scene = new Image<Bgr, Byte>(scannedPath);
+		Console.WriteLine($"Image size is ({Scene.Width}, {Scene.Height}, {Scene.NumberOfChannels})");
 		
-	    CvInvoke.NamedWindow(title1); //Create the window using the specific name
-	    CvInvoke.NamedWindow(title2); //Create the window using the specific name
-	    CvInvoke.NamedWindow(title3); //Create the window using the specific name
+	    CvInvoke.NamedWindow(title1);
+	    CvInvoke.NamedWindow(title2);
+	    CvInvoke.NamedWindow(title3);
+	    CvInvoke.NamedWindow(title4);
 		
-		// Get the corners and descriptors for both images
+		// Setup
 		VectorOfKeyPoint corners1;
 		VectorOfKeyPoint corners2;
-		Mat descriptors1;
-		Mat descriptors2;
-		
-		GetFeatures(img1, orbDetector, out corners1, out descriptors1);
-		GetFeatures(img2, orbDetector, out corners2, out descriptors2);
-		
-		// Match keypoints
-		BFMatcher matcher = new BFMatcher(DistanceType.Hamming);
-		var matches = new VectorOfDMatch();
-		matcher.Match(descriptors1, descriptors2, matches);
-		
-		// Reduce to the 10% best
-		var matchesList = matches.ToArray().ToList();
-		matchesList.Sort((match1, match2) => match1.Distance.CompareTo(match2.Distance));
-		int numGoodMatches = (int)(matchesList.Count() * 0.1);
-		var bestMatchesArray = matchesList.Take(numGoodMatches).ToArray();
-		var bestMatchesVector = new VectorOfDMatch(bestMatchesArray);
+		var matches = new VectorOfVectorOfDMatch();
+		Mat mask;
+		Mat homography;
+		Mat warpedImage = new Mat();
 		
 		// Draw the matches
-        Mat matchesImage = new Mat();
-        Features2DToolbox.DrawMatches(img1, corners1, img2, corners2, bestMatchesVector, matchesImage,
-            Convert(Green), Convert(Blue));
-			
-		// Extract the matched keypoints
-        List<PointF> points1 = new List<PointF>();
-        List<PointF> points2 = new List<PointF>();
-        foreach (var match in bestMatchesArray)
-        {
-            points1.Add(corners1[match.QueryIdx].Point);
-            points2.Add(corners2[match.TrainIdx].Point);
-        }
+		var matchImage = Draw(Model.Mat, Scene.Mat);
 		
-		// Find the homography matrix
-        Mat homography = CvInvoke.FindHomography(points1.ToArray(), points2.ToArray(), RobustEstimationAlgorithm.Ransac, 3);
-
+		// Warp the image
+		FindMatch(Model.Mat, Scene.Mat, out corners1, out corners2, matches, out mask, out homography);
+		CvInvoke.WarpPerspective(Scene, warpedImage, homography, Model.Size, Inter.Linear, Warp.InverseMap);
 		
-		CvInvoke.Imshow(title1, img1); //Show the image
-		CvInvoke.Imshow(title2, img2); //Show the image
-		CvInvoke.Imshow(title3, matchesImage); //Show the image
-		CvInvoke.WaitKey(0);  //Wait for the key pressing event
+		CvInvoke.Imshow(title1, Model);
+		CvInvoke.Imshow(title2, Scene);
+		CvInvoke.Imshow(title3, matchImage);
+		CvInvoke.Imshow(title4, warpedImage);
+		CvInvoke.WaitKey(0);
 	}
 	finally
 	{
-		CvInvoke.DestroyWindow(title1); //Destroy the window if key is pressed
-		CvInvoke.DestroyWindow(title2); //Destroy the window if key is pressed
-		CvInvoke.DestroyWindow(title3); //Destroy the window if key is pressed
+		CvInvoke.DestroyWindow(title1);
+		CvInvoke.DestroyWindow(title2);
+		CvInvoke.DestroyWindow(title3);
+		CvInvoke.DestroyWindow(title4);
 	}
 	
 	Console.WriteLine("done");
@@ -172,9 +152,82 @@ public MCvScalar Convert(Rgb Color)
 	return new MCvScalar(Color.Blue, Color.Green, Color.Red);
 }
 						
+public static void FindMatch(Mat modelImage, Mat observedImage, out VectorOfKeyPoint modelKeyPoints, out VectorOfKeyPoint observedKeyPoints, VectorOfVectorOfDMatch matches, out Mat mask, out Mat homography)
+{
+    int k = 2;
+    double uniquenessThreshold = 0.80;
+    homography = null;
+    modelKeyPoints = new VectorOfKeyPoint();
+    observedKeyPoints = new VectorOfKeyPoint();
+    using (UMat uModelImage = modelImage.GetUMat(AccessType.Read))
+    using (UMat uObservedImage = observedImage.GetUMat(AccessType.Read))
+    {
+        var featureDetector = new ORB(9000);
+        Mat modelDescriptors = new Mat();
+        featureDetector.DetectAndCompute(uModelImage, null, modelKeyPoints, modelDescriptors, false);
+        Mat observedDescriptors = new Mat();
+        featureDetector.DetectAndCompute(uObservedImage, null, observedKeyPoints, observedDescriptors, false);
+        using (var matcher = new BFMatcher(DistanceType.Hamming, false))
+        {
+            matcher.Add(modelDescriptors);
+
+            matcher.KnnMatch(observedDescriptors, matches, k, null);
+            mask = new Mat(matches.Size, 1, DepthType.Cv8U, 1);
+            mask.SetTo(new MCvScalar(255));
+            Features2DToolbox.VoteForUniqueness(matches, uniquenessThreshold, mask);
+
+            int nonZeroCount = CvInvoke.CountNonZero(mask);
+            if (nonZeroCount >= 4)
+            {
+                nonZeroCount = Features2DToolbox.VoteForSizeAndOrientation(modelKeyPoints, observedKeyPoints,
+                    matches, mask, 1.5, 20);
+                if (nonZeroCount >= 4)
+                    homography = Features2DToolbox.GetHomographyMatrixFromMatchedFeatures(modelKeyPoints,
+                        observedKeyPoints, matches, mask, 2);
+            }
+        }
+    }
+}						
 						
-						
-						
+public static Mat Draw(Mat modelImage, Mat observedImage)
+{
+    Mat homography;
+    VectorOfKeyPoint modelKeyPoints;
+    VectorOfKeyPoint observedKeyPoints;
+    using (VectorOfVectorOfDMatch matches = new VectorOfVectorOfDMatch())
+    {
+        Mat mask;
+        FindMatch(modelImage, observedImage, out modelKeyPoints, out observedKeyPoints, matches, out mask, out homography);
+        Mat result = new Mat();
+        Features2DToolbox.DrawMatches(modelImage, modelKeyPoints, observedImage, observedKeyPoints,
+            matches, result, new MCvScalar(255, 0, 0), new MCvScalar(0, 0, 255), mask);
+
+        if (homography != null)
+        {
+            var imgWarped = new Mat();
+            CvInvoke.WarpPerspective(observedImage, imgWarped, homography, modelImage.Size, Inter.Linear, Warp.InverseMap);
+            Rectangle rect = new Rectangle(Point.Empty, modelImage.Size);
+            var pts = new PointF[]
+            {
+                  new PointF(rect.Left, rect.Bottom),
+                  new PointF(rect.Right, rect.Bottom),
+                  new PointF(rect.Right, rect.Top),
+                  new PointF(rect.Left, rect.Top)
+            };
+
+            pts = CvInvoke.PerspectiveTransform(pts, homography);
+            var points = new Point[pts.Length];
+            for (int i = 0; i < points.Length; i++)
+                points[i] = Point.Round(pts[i]);
+
+            using (var vp = new VectorOfPoint(points))
+            {
+                CvInvoke.Polylines(result, vp, true, new MCvScalar(255, 0, 0, 255), 5);
+            }
+        }
+        return result;
+    }
+}						
 						
 						
 						
