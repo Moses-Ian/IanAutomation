@@ -151,7 +151,8 @@ public MCvScalar Convert(Rgb Color)
 {
 	return new MCvScalar(Color.Blue, Color.Green, Color.Red);
 }
-						
+
+// https://stackoverflow.com/a/57007608/20933515
 public static void FindMatch(Mat modelImage, Mat observedImage, out VectorOfKeyPoint modelKeyPoints, out VectorOfKeyPoint observedKeyPoints, VectorOfVectorOfDMatch matches, out Mat mask, out Mat homography)
 {
     int k = 2;
@@ -188,7 +189,8 @@ public static void FindMatch(Mat modelImage, Mat observedImage, out VectorOfKeyP
         }
     }
 }						
-						
+
+// https://stackoverflow.com/a/57007608/20933515
 public static Mat Draw(Mat modelImage, Mat observedImage)
 {
     Mat homography;
