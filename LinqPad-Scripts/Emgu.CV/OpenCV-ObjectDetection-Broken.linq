@@ -63,113 +63,69 @@ void Main()
 {
 	//EmguCV_HelloWorld.Run();
 	
-	string faceDetectionFolderPath = @"F:\projects_csharp\OpenCV-practice\face-detection";
-	string prototxtFile = Path.Combine(faceDetectionFolderPath, "deploy.prototxt");
-	string modelFile = Path.Combine(faceDetectionFolderPath, "res10_300x300_ssd_iter_140000_fp16.caffemodel");
+	string objectDetectionFolderPath = @"F:\projects_csharp\OpenCV-practice\object-detection";
+	string configFile = Path.Combine(objectDetectionFolderPath, "ssd_mobilenet_v2_coco_2018_03_29.pbtxt");
+	string modelFile = Path.Combine(objectDetectionFolderPath, "frozen_inference_graph.pb");
+	string classFile = Path.Combine(objectDetectionFolderPath, "coco_class_labels.txt");
+	string imagePath = @"F:\projects_csharp\OpenCV-practice\baseball.jpg";
+	string title = "Image";
 	
-	VideoCapture capture = null;
+	// create my disposable objects
+	Net net = null;
+	Mat image = null;
+	Mat blob = null;
+	Mat output = null;
 	
-	// model parameters
-	var InWidth = 300;
-	var InHeight = 300;
-	var mean = Convert(new Rgb( 104, 117, 123 ));;
-	var ConfThreshold = 0.7;	// set by me -> sensitivity of detections
-	
-	var Green = new Rgb(0, 255, 0);
+	var dim = 300;
+	Rgb Black = new Rgb(0, 0, 0);
+	Rgb Green = new Rgb(0, 255, 0);
 	
 	try
 	{
-		// Create a VideoCapture object to capture video from the default camera (index 0)
-        capture = new VideoCapture(0);
-        
-        // Check if the camera opened successfully
-        if (!capture.IsOpened)
-        {
-            Console.WriteLine("Error: Unable to open the camera");
-            return;
-        }
-
-        // Create a window to display the captured frames
-        string windowName = "Camera Capture";
-        CvInvoke.NamedWindow(windowName);	
+		image = CvInvoke.Imread(imagePath);
+		net = DnnInvoke.ReadNetFromTensorflow(modelFile, configFile);
 		
-		// Create the net
-		Net net = DnnInvoke.ReadNetFromCaffe(prototxtFile, modelFile);
+		blob = DnnInvoke.BlobFromImage(
+			image, 
+			1.0, 
+			new Size(dim, dim), 
+			Convert(Black), 
+			swapRB: true);
 		
-		while (CvInvoke.WaitKey(1) != 'q')
+		net.SetInput(blob);
+		output = net.Forward();
+		
+		for (int i=0; i<output.SizeOfDimension[2]; i++)
 		{
-			// Capture a frame from the camera
-            Mat frame = new Mat();
-            capture.Read(frame);
+			var classId = (int)GetValue(output, 0, 0, i, 1);
+			var score = (float)GetValue(output, 0, 0, i, 2);
+			var left = (int)GetValue(output, 0, 0, i, 3) * image.Width;
+			var bottom = (int)GetValue(output, 0, 0, i, 4) * image.Height; 
+			var right = (int)GetValue(output, 0, 0, i, 5) * image.Width;
+			var top = (int)GetValue(output, 0, 0, i, 6) * image.Height;
 			
-			// flip it so that it looks like a mirror
-			CvInvoke.Flip(frame, frame, FlipType.Horizontal);
-
-            // Check if the frame was captured successfully
-            if (frame.IsEmpty)
-            {
-                Console.WriteLine("Error: Unable to capture frame");
-                break;
-            }
-
-			// Create a blob from the frame
-			Mat blob = DnnInvoke.BlobFromImage(
-				frame, 
-				1.0, 
-				new Size(frame.Width, frame.Height),
-				mean,
-				false,
-				false);
+			var rect = new Rectangle(left, top, right-left, bottom-top);
 			
-			// Run it through the model
-			net.SetInput(blob);
-			var detections = net.Forward();
-			
-			//Console.WriteLine(
-			//	"{0} {1} {2} {3}", 
-			//	detections.SizeOfDimension[0],
-			//	detections.SizeOfDimension[1],
-			//	detections.SizeOfDimension[2],
-			//	detections.SizeOfDimension[3]);
-			
-			// detections shape is { ??, ??, confidence, ?? }
-			for (int i=0; i<detections.SizeOfDimension[2]; i++)
-			{
-				//var confidence = (int)GetValue(detections, 0, 0, 0, i);
-				var confidence = (int)GetValue(detections, 0, 0, i, 0);
-				//Console.WriteLine(confidence);
-				if (confidence > ConfThreshold)
-				{
-					var left = (int)GetValue(detections, 0, 0, i, 3) * frame.Width;
-					var bottom = (int)GetValue(detections, 0, 0, i, 4) * frame.Height; 
-					var right = (int)GetValue(detections, 0, 0, i, 5) * frame.Width;
-					var top = (int)GetValue(detections, 0, 0, i, 6) * frame.Height;
-					
-					var rect = new Rectangle(left, top, right-left, bottom-top);
-					
-					CvInvoke.Rectangle(frame, rect, Convert(Green));
-					Console.WriteLine("{0} {1} {2} {3}", left, bottom, right, top);
-				}
-				
-			}
-			//Console.WriteLine("----");
-			
-			
-			
-			
-			
-			
-			
-
-            // Display the captured frame
-            CvInvoke.Imshow(windowName, frame);
+			CvInvoke.Rectangle(image, rect, Convert(Green));
+			Console.WriteLine("{0} {1} {2} {3}", left, bottom, right, top);
 		}
+		
+		CvInvoke.NamedWindow(title);	
+		CvInvoke.Imshow(title, image); //Show the image
+		CvInvoke.WaitKey(0);
 	}
 	finally
 	{
-		if (capture != null)
-			capture.Release();
+		if (net != null)
+			net.Dispose();
+		if (image != null)
+			image.Dispose();
+		if (blob != null)
+			blob.Dispose();
+		if (output != null)
+			output.Dispose();
 		CvInvoke.DestroyAllWindows();
+		
     }
 	
 	Console.WriteLine("done");
@@ -187,11 +143,8 @@ public float GetValue(Mat mat, int a, int b, int c, int d)
 	int C = mat.SizeOfDimension[2];
 	int D = mat.SizeOfDimension[3];
     var value = new float[1];
-	//var element = a + b*A + c*A*B + d*A*B*C;
 	var element = a*(B*C*D) + b*(C*D) + c*D + d;
-	//var element = (((A * a) + B * b) + (C * c)) + D * d;
-	//var element = A * a + (B * b + (C * c + (D * d)));
-    Marshal.Copy(mat.DataPointer + element * mat.ElementSize, value, 0, 1);
+	Marshal.Copy(mat.DataPointer + element * mat.ElementSize, value, 0, 1);
     return value[0];
 }
 
