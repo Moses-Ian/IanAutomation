@@ -100,6 +100,12 @@
     <None Update="Apps\FlappyBird\Images\bird.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="Apps\FlappyBird\Images\pipes.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Apps\FlappyBird\Images\pipes_reverse.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

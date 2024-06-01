@@ -21,6 +21,8 @@ namespace IanAutomation.Apps.FlappyBird
         public Mat BirdImage;
         public Mat BirdImage_35;
         public Mat BirdImage_n35;
+        public Mat TopPipeImage;
+        public Mat BottomPipeImage;
         
         public FlappyBird()
         {
@@ -37,6 +39,15 @@ namespace IanAutomation.Apps.FlappyBird
             BirdImage = LoadImage(@"bird.png");
             BirdImage_35 = RotateImage(BirdImage, 35);
             BirdImage_n35 = RotateImage(BirdImage, -35);
+
+
+            TopPipeImage = LoadImage(@"pipes_reverse.png");
+            Rectangle roi = new Rectangle(0, TopPipeImage.Rows-100, TopPipeImage.Cols, 100);
+            TopPipeImage = new Mat(TopPipeImage, roi);
+
+            BottomPipeImage = LoadImage(@"pipes.png");
+            roi = new Rectangle(0, 0, BottomPipeImage.Cols, 100);
+            BottomPipeImage = new Mat(BottomPipeImage, roi);
         }
 
         public IWebElement Canvas
@@ -193,5 +204,119 @@ namespace IanAutomation.Apps.FlappyBird
 
             return rotatedImage;
         }
+
+        public List<Point> DetectTopPipes(Mat GameImage)
+        {
+            double threshold = 0.95;
+            List<Point> points = new List<Point>();
+
+            // Crop the game image to the top 300 pixels
+            Rectangle roi = new Rectangle(0, 0, GameImage.Cols, 300);
+            Mat croppedImage = new Mat(GameImage, roi);
+
+            // Create the result matrix
+            int resultCols = croppedImage.Cols - TopPipeImage.Cols + 1;
+            int resultRows = croppedImage.Rows - TopPipeImage.Rows + 1;
+            Mat result = new Mat(resultRows, resultCols, DepthType.Cv32F, 1);
+
+            // Perform template matching
+            CvInvoke.MatchTemplate(croppedImage, TopPipeImage, result, TemplateMatchingType.CcoeffNormed);
+
+            // Normalize the result
+            CvInvoke.Normalize(result, result, 0, 1, NormType.MinMax, DepthType.Default, null);
+
+            while (true)
+            {
+                // Find the location of the best match
+                double minVal = 0, maxVal = 0;
+                Point minLoc = new Point();
+                Point maxLoc = new Point();
+                CvInvoke.MinMaxLoc(result, ref minVal, ref maxVal, ref minLoc, ref maxLoc);
+
+                // If the best match value is less than the threshold, stop searching
+                if (maxVal < threshold)
+                    break;
+
+                // Determine the best match location
+                points.Add(maxLoc);
+
+                // Set the matched region to zero in the result matrix to find other matches
+                Rectangle matchRect = new Rectangle(maxLoc, TopPipeImage.Size);
+                CvInvoke.Rectangle(result, matchRect, new MCvScalar(0), -1);
+            }
+
+            // Clean up
+            result.Dispose();
+
+            return points;
+        }
+
+        public void AnnotateTopPipes(Mat GameImage, List<Point> Points)
+        {
+            foreach (Point p in Points)
+            {
+                // Draw a rectangle around the matched region
+                Rectangle matchRect = new Rectangle(p, TopPipeImage.Size);
+                CvInvoke.Rectangle(GameImage, matchRect, new MCvScalar(0, 0, 255), 2);
+            }
+        }
+
+        public List<Point> DetectBottomPipes(Mat GameImage)
+        {
+            double threshold = 0.95;
+            List<Point> points = new List<Point>();
+
+            // Crop the game image to the bottom 300 pixels
+            Rectangle roi = new Rectangle(0, 300, GameImage.Cols, 300);
+            Mat croppedImage = new Mat(GameImage, roi);
+
+            // Create the result matrix
+            int resultCols = croppedImage.Cols - BottomPipeImage.Cols + 1;
+            int resultRows = croppedImage.Rows - BottomPipeImage.Rows + 1;
+            Mat result = new Mat(resultRows, resultCols, DepthType.Cv32F, 1);
+
+            // Perform template matching
+            CvInvoke.MatchTemplate(croppedImage, BottomPipeImage, result, TemplateMatchingType.CcoeffNormed);
+
+            // Normalize the result
+            CvInvoke.Normalize(result, result, 0, 1, NormType.MinMax, DepthType.Default, null);
+
+            while (true)
+            {
+                // Find the location of the best match
+                double minVal = 0, maxVal = 0;
+                Point minLoc = new Point();
+                Point maxLoc = new Point();
+                CvInvoke.MinMaxLoc(result, ref minVal, ref maxVal, ref minLoc, ref maxLoc);
+
+                // If the best match value is less than the threshold, stop searching
+                if (maxVal < threshold)
+                    break;
+
+                // Determine the best match location
+                Point actualPoint = new Point(maxLoc.X, maxLoc.Y + 300);
+                points.Add(actualPoint);
+
+                // Set the matched region to zero in the result matrix to find other matches
+                Rectangle matchRect = new Rectangle(maxLoc, BottomPipeImage.Size);
+                CvInvoke.Rectangle(result, matchRect, new MCvScalar(0), -1);
+            }
+
+            // Clean up
+            result.Dispose();
+
+            return points;
+        }
+
+        public void AnnotateBottomPipes(Mat GameImage, List<Point> Points)
+        {
+            foreach (Point p in Points)
+            {
+                // Draw a rectangle around the matched region
+                Rectangle matchRect = new Rectangle(p, BottomPipeImage.Size);
+                CvInvoke.Rectangle(GameImage, matchRect, new MCvScalar(0, 255, 126), 2);
+            }
+        }
+
     }
 }

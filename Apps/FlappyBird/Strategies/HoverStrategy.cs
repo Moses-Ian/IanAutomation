@@ -6,7 +6,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Drawing;
-using Emgu.CV;
 using System.Diagnostics;
 
 namespace IanAutomation.Apps.FlappyBird.Strategies
