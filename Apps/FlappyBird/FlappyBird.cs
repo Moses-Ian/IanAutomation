@@ -23,6 +23,7 @@ namespace IanAutomation.Apps.FlappyBird
         public Mat BirdImage_n35;
         public Mat TopPipeImage;
         public Mat BottomPipeImage;
+        public Mat ScoreBoxImage;
         
         public FlappyBird()
         {
@@ -40,7 +41,6 @@ namespace IanAutomation.Apps.FlappyBird
             BirdImage_35 = RotateImage(BirdImage, 35);
             BirdImage_n35 = RotateImage(BirdImage, -35);
 
-
             TopPipeImage = LoadImage(@"pipes_reverse.png");
             Rectangle roi = new Rectangle(0, TopPipeImage.Rows-100, TopPipeImage.Cols, 100);
             TopPipeImage = new Mat(TopPipeImage, roi);
@@ -48,6 +48,8 @@ namespace IanAutomation.Apps.FlappyBird
             BottomPipeImage = LoadImage(@"pipes.png");
             roi = new Rectangle(0, 0, BottomPipeImage.Cols, 100);
             BottomPipeImage = new Mat(BottomPipeImage, roi);
+
+            ScoreBoxImage = LoadImage(@"ScoreBox.png");
         }
 
         public IWebElement Canvas
@@ -136,13 +138,11 @@ namespace IanAutomation.Apps.FlappyBird
             Point maxLoc = new Point();
             CvInvoke.MinMaxLoc(result, ref minVal, ref maxVal, ref minLoc, ref maxLoc);
 
-            // Determine the best match location
-            Point matchLoc = maxLoc;
-
             // Clean up
             result.Dispose();
 
-            return matchLoc;
+            // Return the best location
+            return maxLoc;
         }
 
         private Point DetectBird_n35(Mat GameImage) 
@@ -316,6 +316,51 @@ namespace IanAutomation.Apps.FlappyBird
                 Rectangle matchRect = new Rectangle(p, BottomPipeImage.Size);
                 CvInvoke.Rectangle(GameImage, matchRect, new MCvScalar(0, 255, 126), 2);
             }
+        }
+
+        public bool IsGameOver(Mat GameImage)
+        {
+            return DetectScoreBox(GameImage) != null;
+        }
+
+        public Point? DetectScoreBox(Mat GameImage)
+        {
+            // Create the result matrix
+            int resultCols = GameImage.Cols - ScoreBoxImage.Cols + 1;
+            int resultRows = GameImage.Rows - ScoreBoxImage.Rows + 1;
+            Mat result = new Mat(resultRows, resultCols, DepthType.Cv32F, 1);
+
+            // Perform template matching
+            CvInvoke.MatchTemplate(GameImage, ScoreBoxImage, result, TemplateMatchingType.CcoeffNormed);
+
+            // Normalize the result
+            CvInvoke.Normalize(result, result, 0, 1, NormType.MinMax, DepthType.Default, null);
+
+            // Find the location of the best match
+            double minVal = 0, maxVal = 0;
+            Point minLoc = new Point();
+            Point maxLoc = new Point();
+            CvInvoke.MinMaxLoc(result, ref minVal, ref maxVal, ref minLoc, ref maxLoc);
+
+            // Clean up
+            result.Dispose();
+
+            // the location should always be ( 36, 256 )
+            if (maxLoc.X < 35 || maxLoc.X > 37 || maxLoc.Y < 255 || maxLoc.Y > 257)
+                return null;
+
+            // Return the best location
+            return maxLoc;
+        }
+
+        public void AnnotateScoreBox(Mat GameImage, Point? ScoreBoxLocation)
+        {
+            if (ScoreBoxLocation == null)
+                return;
+
+            // Draw a rectangle around the matched region
+            Rectangle matchRect = new Rectangle(ScoreBoxLocation.Value, ScoreBoxImage.Size);
+            CvInvoke.Rectangle(GameImage, matchRect, new MCvScalar(0, 255, 0), 2);
         }
 
     }
