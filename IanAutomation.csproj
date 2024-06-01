@@ -96,4 +96,10 @@
     </Reference>
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="Apps\FlappyBird\Images\bird.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
