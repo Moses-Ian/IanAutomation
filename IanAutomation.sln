@@ -3,7 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.6.33829.357
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IanAutomation", "IanAutomation.csproj", "{4EFE981F-D926-4B6F-9B4D-A2A68468E7FD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IanAutomation", "IanAutomation.csproj", "{4EFE981F-D926-4B6F-9B4D-A2A68468E7FD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IanNet", "..\IanNet\IanNet.csproj", "{54A78B09-9219-46D0-9E40-728A3E3FF759}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "tutorial", "..\tutorial\tutorial.csproj", "{304ADF94-CBA1-4777-B2A5-C428FF653A57}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +19,14 @@ Global
 		{4EFE981F-D926-4B6F-9B4D-A2A68468E7FD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4EFE981F-D926-4B6F-9B4D-A2A68468E7FD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4EFE981F-D926-4B6F-9B4D-A2A68468E7FD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{54A78B09-9219-46D0-9E40-728A3E3FF759}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{54A78B09-9219-46D0-9E40-728A3E3FF759}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{54A78B09-9219-46D0-9E40-728A3E3FF759}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{54A78B09-9219-46D0-9E40-728A3E3FF759}.Release|Any CPU.Build.0 = Release|Any CPU
+		{304ADF94-CBA1-4777-B2A5-C428FF653A57}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{304ADF94-CBA1-4777-B2A5-C428FF653A57}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{304ADF94-CBA1-4777-B2A5-C428FF653A57}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{304ADF94-CBA1-4777-B2A5-C428FF653A57}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
