@@ -30,8 +30,8 @@ namespace IanAutomation.Apps.FlappyBird.Strategies
             Mat GameImage = new Mat();
             Page.GetScreenshot(GameImage);
 
-            if (Page.IsGameOver(GameImage))
-                Page.Restart();
+            //if (Page.IsGameOver(GameImage))
+            //    Page.Restart();
 
             Point? BirdLocation = Page.DetectBird(GameImage);
 

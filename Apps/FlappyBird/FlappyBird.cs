@@ -481,5 +481,22 @@ namespace IanAutomation.Apps.FlappyBird
             CvInvoke.Rectangle(GameImage, matchRect, new MCvScalar(0, 255, 0), 2);
         }
 
+        /// <summary>
+        /// Cheat the game by adjusting the parameters!
+        /// </summary>
+        public void SetPipeMinGap(int PipeMinGap)
+        {
+            string js = $"pipeMinGap = {PipeMinGap}";
+            ((IJavaScriptExecutor)Driver).ExecuteScript(js, Canvas);
+        }
+
+        /// <summary>
+        /// Cheat the game by adjusting the parameters!
+        /// </summary>
+        public void SetPipeMaxGap(int PipeMaxGap)
+        {
+            string js = $"pipeMaxGap = {PipeMaxGap}";
+            ((IJavaScriptExecutor)Driver).ExecuteScript(js, Canvas);
+        }
     }
 }
