@@ -67,5 +67,11 @@ namespace IanAutomation.Apps.FlappyBird.Strategies
 
             return closestPoint;
         }
+
+        public void SetToyNeuralNetwork(ToyNeuralNetwork toyNeuralNetwork)
+        {
+            Net = toyNeuralNetwork;
+        }
+
     }
 }
