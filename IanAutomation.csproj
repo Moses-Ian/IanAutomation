@@ -31,6 +31,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\IanNet\IanNet.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Reference Include="AutoItX3.Assembly">
       <HintPath>third-party-dependencies\AutoItX\AutoItX3.Assembly.dll</HintPath>
     </Reference>
