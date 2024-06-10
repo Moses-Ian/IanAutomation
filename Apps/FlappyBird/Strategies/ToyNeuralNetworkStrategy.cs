@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Emgu.CV;
 using IanNet;
 using System.Drawing;
+using System.Diagnostics;
 
 namespace IanAutomation.Apps.FlappyBird.Strategies
 {
@@ -13,11 +14,13 @@ namespace IanAutomation.Apps.FlappyBird.Strategies
     {
         public FlappyBird Page;
         public ToyNeuralNetwork Net;
+        public int? previousY = null;
+        public Stopwatch velocityStopwatch = new Stopwatch();
 
         public ToyNeuralNetworkStrategy(FlappyBird Page)
         {
             SetPage(Page);
-            Net = new ToyNeuralNetwork(4, 4, 1);
+            Net = new ToyNeuralNetwork(5, 8, 1);
         }
 
         public void SetPage(FlappyBird Page)
@@ -30,9 +33,6 @@ namespace IanAutomation.Apps.FlappyBird.Strategies
             Mat GameImage = new Mat();
             Page.GetScreenshot(GameImage);
 
-            //if (Page.IsGameOver(GameImage))
-            //    Page.Restart();
-
             Point? BirdLocation = Page.DetectBird(GameImage);
 
             if (BirdLocation == null)
@@ -43,9 +43,23 @@ namespace IanAutomation.Apps.FlappyBird.Strategies
             List<Point> TopHalfPipes = Page.DetectTopHalfPipes(GameImage);
             Point closestTopHalfPipe = DetermineClosestPipe(TopHalfPipes);
 
+            float velocityY;
+            if (previousY != null)
+            {
+                velocityY = ((float)(BirdLocation.Value.Y - previousY.Value)) / velocityStopwatch.ElapsedMilliseconds;
+                previousY = BirdLocation.Value.Y;
+                velocityStopwatch.Restart();
+            }
+            else
+            {
+                velocityY = 0;
+                velocityStopwatch.Restart();
+            }
+
             float[] inputs = new float[] 
             { 
-                BirdLocation.Value.Y / GameImage.Height, 
+                BirdLocation.Value.Y / GameImage.Height,
+                velocityY / GameImage.Height,
                 closestBottomHalfPipe.X / GameImage.Width, 
                 closestBottomHalfPipe.Y / GameImage.Height, 
                 closestTopHalfPipe.Y / GameImage.Height
