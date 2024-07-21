@@ -32,8 +32,9 @@ namespace IanAutomation.Apps.FlappyBird.Strategies
             this.Page = Page;
         }
 
-        public void Strategize()
+        public BirdAction Strategize()
         {
+            BirdAction action = BirdAction.Nothing;
             Mat GameImage = new Mat();
             Page.GetScreenshot(GameImage);
             
@@ -43,22 +44,24 @@ namespace IanAutomation.Apps.FlappyBird.Strategies
             Point? BirdLocation = Page.DetectBird(GameImage);
             
             if (BirdLocation == null)
-                return;
+                return BirdAction.Nothing;
 
             List<Point> BottomPipes = Page.DetectBottomPipes(GameImage);
             var closestPipe = DetermineClosestPipe(BottomPipes);
 
             if (BirdLocation.Value.Y + Page.BirdImage.Height + DistanceBuffer > closestPipe.Y)
             {
-                Page.Flap();
+                action = BirdAction.Flap;
                 FlapStopwatch.Restart();
             }
 
             if (FlapStopwatch.ElapsedMilliseconds > 400)
             {
-                Page.Flap();
+                action = BirdAction.Flap;
                 FlapStopwatch.Restart();
             }
+
+            return action;
         }
 
         private Point DetermineClosestPipe(List<Point> BottomPipes)

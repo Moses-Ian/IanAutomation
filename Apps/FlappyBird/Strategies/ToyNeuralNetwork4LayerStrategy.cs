@@ -10,23 +10,32 @@ using System.Diagnostics;
 
 namespace IanAutomation.Apps.FlappyBird.Strategies
 {
-    public class ToyNeuralNetworkStrategy : IStrategy
+    public class ToyNeuralNetwork4LayerStrategy : IStrategy
     {
         public FlappyBird Page;
-        public ToyNeuralNetwork Net;
+        public ToyNeuralNetwork4Layer Net;
         public int? previousY = null;
         public int? birdX = null;
         public float? previousVelocityY = null;
         public Stopwatch velocityStopwatch;
 
+        public Point? BirdLocation;
+        public Point closestBottomHalfPipe;
+        public Point closestTopHalfPipe;
+        public float velocityY;
+        public float[] inputs;
+        public float output;
+
         // You get better results by adjusting which pipes you ignore for being too far back
         public int BirdLocationOffset = 25;
 
-        public ToyNeuralNetworkStrategy(FlappyBird Page, Stopwatch VelocityStopwatch)
+        public ToyNeuralNetwork4LayerStrategy(FlappyBird Page, Stopwatch VelocityStopwatch)
         {
             SetPage(Page);
-            Net = new ToyNeuralNetwork(5, 5, 1);
+            Net = new ToyNeuralNetwork4Layer(5, 5, 5, 1, learningRate: 1f);
             velocityStopwatch = VelocityStopwatch;
+            CvInvoke.NamedWindow("Flappy Bird");
+
         }
 
         public void SetPage(FlappyBird Page)
@@ -41,26 +50,46 @@ namespace IanAutomation.Apps.FlappyBird.Strategies
             Mat GameImage = new Mat();
             Page.GetScreenshot(GameImage);
 
+            // find the bird location and the score card
+            var task_GameOver = Task.Run(() => Page.IsGameOver(GameImage));
+            var task_BirdLocation = Task.Run(() => Page.DetectBird(GameImage));
+            Task.WaitAll(task_GameOver, task_BirdLocation);
+
+            bool isGameOver = task_GameOver.Result;
+            BirdLocation = task_BirdLocation.Result;
+            
             // check for game over
-            if (Page.IsGameOver(GameImage))
+            if (isGameOver)
                 return BirdAction.Restart;
 
-            Point? BirdLocation = Page.DetectBird(GameImage);
-            
-            if (BirdLocation == null)
+            if (BirdLocation == null && previousY == null)
+                return BirdAction.Flap;
+            else if (BirdLocation == null)
                 return BirdAction.Nothing;
 
-            List<Point> BottomHalfPipes = Page.DetectBottomHalfPipes(GameImage);
-            Point closestBottomHalfPipe = DetermineClosestPipe(BottomHalfPipes, BirdLocation);
-            List<Point> TopHalfPipes = Page.DetectTopHalfPipes(GameImage);
-            Point closestTopHalfPipe = DetermineClosestPipe(TopHalfPipes, BirdLocation);
+            // find the pipes
+            var task_BottomPipes = Task.Run(() =>
+            {
+                List<Point> BottomHalfPipes = Page.DetectBottomHalfPipes(GameImage);
+                return DetermineClosestPipe(BottomHalfPipes, BirdLocation);
+            });
+            var task_TopPipes = Task.Run(() =>
+            {
+                List<Point> TopHalfPipes = Page.DetectTopHalfPipes(GameImage);
+                return DetermineClosestPipe(TopHalfPipes, BirdLocation);
+            });
+            Task.WaitAll(task_BottomPipes, task_TopPipes);
 
-            float velocityY;
+            closestBottomHalfPipe = task_BottomPipes.Result;
+            closestTopHalfPipe = task_TopPipes.Result;
+
+            long elapsedMilliseconds = velocityStopwatch.ElapsedMilliseconds;
+
             if (previousY != null)
-                velocityY = ((float)(BirdLocation.Value.Y - previousY.Value)) / velocityStopwatch.ElapsedMilliseconds;
+                velocityY = ((float)(previousY.Value - BirdLocation.Value.Y)) / elapsedMilliseconds;
             else
                 velocityY = 0;
-            
+
             //float[] inputs = new float[] 
             //{ 
             //    0,
@@ -69,19 +98,20 @@ namespace IanAutomation.Apps.FlappyBird.Strategies
             //    0, 
             //    0
             //};
-            
-            float[] inputs = new float[]
+
+            inputs = new float[]
             {
                 (float) BirdLocation.Value.Y / GameImage.Height,
                 (float) velocityY / GameImage.Height,
-                (float) closestBottomHalfPipe.X / GameImage.Width, 
-                (float) closestBottomHalfPipe.Y / GameImage.Height, 
+                (float) closestBottomHalfPipe.X / GameImage.Width,
+                (float) closestBottomHalfPipe.Y / GameImage.Height,
                 (float) closestTopHalfPipe.Y / GameImage.Height
             };
             float[] outputs = Net.Forward(inputs);
+            output = outputs[0];
 
             // return true if the page should flap
-            if (outputs[0] > 0.5)
+            if (output > 0.5)
                 action = BirdAction.Flap;
 
             previousY = BirdLocation.Value.Y;
@@ -104,10 +134,11 @@ namespace IanAutomation.Apps.FlappyBird.Strategies
             return closestPoint;
         }
 
-        public void SetToyNeuralNetwork(ToyNeuralNetwork toyNeuralNetwork)
+        public void SetToyNeuralNetwork(ToyNeuralNetwork4Layer toyNeuralNetwork)
         {
             Net = toyNeuralNetwork;
             velocityStopwatch.Restart();
         }
+
     }
 }

@@ -26,19 +26,21 @@ namespace IanAutomation.Apps.FlappyBird
         public Mat BottomPipeImage;
         public Mat BottomPipeHalfImage;
         public Mat ScoreBoxImage;
+        private int[] locations;
         
-        public FlappyBird()
+        public FlappyBird(string Url=null)
         {
             string ProfilePath = @"C:\Users\IMoses\AppData\Local\Google\Chrome\User";
             ChromeOptions options = new ChromeOptions();
             options.AddArgument($"--user-data-dir={ProfilePath}");
             Driver = new ChromeDriver(@"C:\WebDriver\chromedriver.exe", options);
-            Driver.Navigate().GoToUrl("https://moses-ian.github.io/FlappyBirdWithComputerVision/");
+            Driver.Navigate().GoToUrl(Url == null ? "https://moses-ian.github.io/FlappyBirdWithComputerVision/" : Url);
 
             Thread.Sleep(1000);
 
             SetWindowSize();
             BirdImage = LoadImage(@"bird.png");
+            BirdImage = ScaleImage(BirdImage, 80, 80);
             BirdImage_35 = RotateImage(BirdImage, 35);
             BirdImage_n35 = RotateImage(BirdImage, -35);
 
@@ -55,6 +57,9 @@ namespace IanAutomation.Apps.FlappyBird
             BottomPipeHalfImage = new Mat(BottomPipeImage, roi);
 
             ScoreBoxImage = LoadImage(@"ScoreBox.png");
+
+            int h = Canvas.Size.Height / 2;
+            locations = new int[] { h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, h };
         }
 
         public IWebElement Canvas
@@ -111,19 +116,44 @@ namespace IanAutomation.Apps.FlappyBird
 
         public Point? DetectBird(Mat GameImage)
         {
-            Point location_35 = DetectBird_35(GameImage);
-            Point location_n35 = DetectBird_n35(GameImage);
-            if (location_35.X < 30)
-                return location_35;
-            if (location_n35.X < 30) 
-                return location_n35;
-            return null;
+            var task_35 = Task.Run(() => DetectBird_35(GameImage));
+            var task_n35 = Task.Run(() => DetectBird_n35(GameImage));
+            Task.WaitAll(task_35, task_n35);
+
+            Point location_35 = task_35.Result.Item1;
+            double maxVal_35 = task_35.Result.Item2;
+            Point location_n35 = task_n35.Result.Item1;
+            double maxVal_n35 = task_n35.Result.Item2;
+
+            // fuck it, we'll lerp between them
+            double sum = maxVal_35 + maxVal_n35;
+            int loc = (int) (( location_35.Y * maxVal_35 + location_n35.Y * maxVal_n35 ) / sum);
+            loc = movingAverage(loc);
+
+            return new Point(0, loc);
         }
 
-        private Point DetectBird_35(Mat GameImage) 
+        /// <summary>
+        /// This has the side-effect of updating locations
+        /// </summary>
+        private int movingAverage(int loc)
+        {
+            int sum = 0;
+            for (int i = locations.Length-2; i >= 1; i--)
+            {
+                sum += locations[i];
+                locations[i] = locations[i - 1];
+            }
+            sum += locations[0];
+            locations[0] = loc;
+            sum += loc;
+            return sum / locations.Length;
+        }
+
+        private (Point, double) DetectBird_35(Mat GameImage) 
         {
             // Crop the game image to the left 200 pixels
-            Rectangle roi = new Rectangle(0, 0, 200, GameImage.Rows);
+            Rectangle roi = new Rectangle(29, 0, 102, GameImage.Rows);
             Mat croppedImage = new Mat(GameImage, roi);
 
             // Create the result matrix
@@ -135,7 +165,7 @@ namespace IanAutomation.Apps.FlappyBird
             CvInvoke.MatchTemplate(croppedImage, BirdImage_35, result, TemplateMatchingType.CcoeffNormed);
 
             // Normalize the result
-            CvInvoke.Normalize(result, result, 0, 1, NormType.MinMax, DepthType.Default, null);
+            //CvInvoke.Normalize(result, result, 0, 1, NormType.MinMax, DepthType.Default, null);
 
             // Find the location of the best match
             double minVal = 0, maxVal = 0;
@@ -147,13 +177,13 @@ namespace IanAutomation.Apps.FlappyBird
             result.Dispose();
 
             // Return the best location
-            return maxLoc;
+            return (maxLoc, maxVal);
         }
 
-        private Point DetectBird_n35(Mat GameImage) 
+        private (Point, double) DetectBird_n35(Mat GameImage) 
         {
             // Crop the game image to the left 200 pixels
-            Rectangle roi = new Rectangle(0, 0, 200, GameImage.Rows);
+            Rectangle roi = new Rectangle(29, 0, 82, GameImage.Rows);
             Mat croppedImage = new Mat(GameImage, roi);
 
             // Create the result matrix
@@ -165,7 +195,7 @@ namespace IanAutomation.Apps.FlappyBird
             CvInvoke.MatchTemplate(croppedImage, BirdImage_n35, result, TemplateMatchingType.CcoeffNormed);
 
             // Normalize the result
-            CvInvoke.Normalize(result, result, 0, 1, NormType.MinMax, DepthType.Default, null);
+            //CvInvoke.Normalize(result, result, 0, 1, NormType.MinMax, DepthType.Default, null);
 
             // Find the location of the best match
             double minVal = 0, maxVal = 0;
@@ -179,7 +209,7 @@ namespace IanAutomation.Apps.FlappyBird
             // Clean up
             result.Dispose();
 
-            return matchLoc;
+            return (matchLoc, maxVal);
         }
 
         public void AnnotateBird(Mat GameImage, Point? BirdLocation)
@@ -197,6 +227,14 @@ namespace IanAutomation.Apps.FlappyBird
             string basePath = AppDomain.CurrentDomain.BaseDirectory;
             string imagePath = Path.Combine(basePath, relativePath);
             return CvInvoke.Imread(imagePath);
+        }
+
+        private Mat ScaleImage(Mat image, int width, int height)
+        {
+            Size newSize = new Size(width, height);
+            Mat resizedImage = new Mat();
+            CvInvoke.Resize(image, resizedImage, newSize, 0, 0, Inter.Linear);
+            return resizedImage;
         }
 
         private Mat RotateImage(Mat image, double angle)
@@ -436,20 +474,36 @@ namespace IanAutomation.Apps.FlappyBird
             }
         }
 
-        public bool IsGameOver(Mat GameImage)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="GameImage">If null, this will take a new screenshot which can cost time</param>
+        /// <returns></returns>
+        public bool IsGameOver(Mat GameImage = null)
         {
-            return DetectScoreBox(GameImage) != null;
+            if (GameImage != null)
+                return DetectScoreBox(GameImage) != null;
+            
+            using (GameImage = new Mat())
+            {
+                GetScreenshot(GameImage);
+                return DetectScoreBox(GameImage) != null;
+            }
         }
 
         public Point? DetectScoreBox(Mat GameImage)
         {
+            // Crop the game image to the score box region
+            Rectangle roi = new Rectangle(30, 250, 340, 100);
+            Mat croppedImage = new Mat(GameImage, roi);
+
             // Create the result matrix
-            int resultCols = GameImage.Cols - ScoreBoxImage.Cols + 1;
-            int resultRows = GameImage.Rows - ScoreBoxImage.Rows + 1;
+            int resultCols = croppedImage.Cols - ScoreBoxImage.Cols + 1;
+            int resultRows = croppedImage.Rows - ScoreBoxImage.Rows + 1;
             Mat result = new Mat(resultRows, resultCols, DepthType.Cv32F, 1);
 
             // Perform template matching
-            CvInvoke.MatchTemplate(GameImage, ScoreBoxImage, result, TemplateMatchingType.CcoeffNormed);
+            CvInvoke.MatchTemplate(croppedImage, ScoreBoxImage, result, TemplateMatchingType.Ccorr);
 
             // Normalize the result
             CvInvoke.Normalize(result, result, 0, 1, NormType.MinMax, DepthType.Default, null);
@@ -461,14 +515,15 @@ namespace IanAutomation.Apps.FlappyBird
             CvInvoke.MinMaxLoc(result, ref minVal, ref maxVal, ref minLoc, ref maxLoc);
 
             // Clean up
+            croppedImage.Dispose();
             result.Dispose();
 
-            // the location should always be ( 36, 256 )
-            if (maxLoc.X < 35 || maxLoc.X > 37 || maxLoc.Y < 255 || maxLoc.Y > 257)
+            // the location should always be ( 6, 6 ) on the cropped image
+            if (maxLoc.X < 5 ||maxLoc.X > 7 || maxLoc.Y < 5 || maxLoc.Y > 7)
                 return null;
 
             // Return the best location
-            return maxLoc;
+            return new Point(maxLoc.X + 30, maxLoc.Y + 250);
         }
 
         public void AnnotateScoreBox(Mat GameImage, Point? ScoreBoxLocation)
@@ -497,6 +552,11 @@ namespace IanAutomation.Apps.FlappyBird
         {
             string js = $"pipeMaxGap = {PipeMaxGap}";
             ((IJavaScriptExecutor)Driver).ExecuteScript(js, Canvas);
+        }
+
+        public object ExecuteScript(string js)
+        {
+            return ((IJavaScriptExecutor)Driver).ExecuteScript(js);
         }
     }
 }

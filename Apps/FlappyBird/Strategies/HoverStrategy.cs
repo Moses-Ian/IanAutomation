@@ -30,11 +30,13 @@ namespace IanAutomation.Apps.FlappyBird.Strategies
             this.Page = Page;
         }
 
-        public void Strategize()
+        public BirdAction Strategize()
         {
+            BirdAction action = BirdAction.Nothing;
             if (FlapStopwatch.ElapsedMilliseconds > 400)
             {
-                Page.Flap();
+                //Page.Flap();
+                action = BirdAction.Flap;
                 FlapStopwatch.Restart();
             }
             if (RestartStopwatch.ElapsedMilliseconds > 4000)
@@ -42,6 +44,7 @@ namespace IanAutomation.Apps.FlappyBird.Strategies
                 Page.Restart();
                 RestartStopwatch.Restart();
             }
+            return action;
         }
     }
 }

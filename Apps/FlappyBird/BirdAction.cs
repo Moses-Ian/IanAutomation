@@ -4,10 +4,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace IanAutomation.Apps.FlappyBird.Strategies
+namespace IanAutomation.Apps.FlappyBird
 {
-    public interface IStrategy
+    public enum BirdAction
     {
-        BirdAction Strategize();
+        Nothing,
+        Flap,
+        Restart
     }
 }
